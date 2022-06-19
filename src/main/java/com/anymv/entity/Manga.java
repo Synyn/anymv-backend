@@ -21,8 +21,7 @@ public class Manga extends BaseEntity {
     @JoinColumn(name = "type_id")
     private Type type;
 
-    @Basic
-    @Temporal(TemporalType.TIMESTAMP)
+    @Column(columnDefinition = "varchar(4)")
     private String year;
 
     @ManyToMany
