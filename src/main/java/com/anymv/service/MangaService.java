@@ -39,20 +39,18 @@ public class MangaService {
         TypedQuery<Manga> resultQuery = customMangaDao.findByFilter(searchDTO);
 
         if (resultQuery.getMaxResults() == 0) {
-            List<Manga> mangas = null;
             try {
-                mangas = getResourcesFromApi(searchDTO);
+                return gatherResultsFromApi(searchDTO);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-
-            return new AnyMvPage<>(mangas, mangas.size(), searchDTO.getItems(), searchDTO.getPage());
+        } else {
+            return new AnyMvPage<>(resultQuery, searchDTO.getPage(), searchDTO.getItems());
         }
 
-        return new AnyMvPage<>(resultQuery, searchDTO.getPage(), searchDTO.getItems());
     }
 
-    private AnyMvPage<Manga> getResourcesFromApi(MangaSearchDTO searchDTO) throws IOException {
+    private AnyMvPage<Manga> gatherResultsFromApi(MangaSearchDTO searchDTO) throws IOException {
         final String MANGA_UPDATES_API_SEARCH = "https://api.mangaupdates.com/v1/series/search";
         CloseableHttpClient client = HttpClients.createDefault();
 
@@ -81,7 +79,7 @@ public class MangaService {
 
         String search = searchDTO.getName();
 
-        if(StringUtils.isEmpty(search)) {
+        if (StringUtils.isEmpty(search)) {
             search = searchDTO.getDescription();
         }
 
