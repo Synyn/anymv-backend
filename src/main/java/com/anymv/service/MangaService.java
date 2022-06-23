@@ -2,12 +2,12 @@ package com.anymv.service;
 
 import com.anymv.dao.CustomMangaDao;
 import com.anymv.dto.MangaSearchDTO;
-import com.anymv.dto.mangaupdates.MangaUpdatesRequest;
-import com.anymv.dto.mangaupdates.MangaUpdatesResponse;
+import com.anymv.dto.mangaupdates.*;
+import com.anymv.entity.Genre;
 import com.anymv.entity.Manga;
 import com.anymv.util.AnyMvPage;
+import com.anymv.util.ErrorMessages;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -16,13 +16,18 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -30,7 +35,12 @@ public class MangaService {
     @Autowired
     private CustomMangaDao customMangaDao;
 
+    @Autowired
+    private GenreService genreService;
+
     private static ObjectMapper mapper = new ObjectMapper();
+
+    private Logger logger = LoggerFactory.getLogger(MangaService.class);
 
 
     @Transactional
@@ -72,12 +82,40 @@ public class MangaService {
         CloseableHttpResponse response = client.execute(post);
         HttpEntity responseEntity = response.getEntity();
 
-        MangaUpdatesResponse mangaUpdatesResponse = mapper.readValue(responseEntity.getContent(), MangaUpdatesResponse.class);
-        return mangaUpdatesResponse;
+        return mapper.readValue(responseEntity.getContent(), MangaUpdatesResponse.class);
     }
 
     private List<Manga> cacheMangaUpdates(MangaUpdatesResponse mangaUpdatesResponse) {
-        throw new NotImplementedException();
+
+        if(mangaUpdatesResponse.getTotalHits() == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ErrorMessages.RESOURCE_NOT_FOUND);
+        }
+
+        List<MangaUpdatesResult> results = mangaUpdatesResponse.getResults();
+        List<Manga> dbManga = new ArrayList<>();
+
+        for(MangaUpdatesResult result: results) {
+            MangaUpdatesRecord record = result.getRecord();
+            List<String> genres = mangaUpdatesGenreToStringArray(record.getGenres());
+
+            List<Genre> dbGenres = genreService.getAndCreateGenres(genres);
+
+            Manga manga = new Manga();
+
+        }
+
+        return dbManga;
+
+    }
+
+    private List<String> mangaUpdatesGenreToStringArray(List<MangaUpdatesGenre> genres) {
+        ArrayList<String> genreStr = new ArrayList<>();
+
+        for(MangaUpdatesGenre genre: genres) {
+            genreStr.add(genre.getGenre());
+        }
+
+        return genreStr;
     }
 
     private MangaUpdatesRequest createMangaUpdatesBody(MangaSearchDTO searchDTO) {
