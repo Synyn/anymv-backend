@@ -51,6 +51,13 @@ public class MangaService {
     }
 
     private AnyMvPage<Manga> gatherResultsFromApi(MangaSearchDTO searchDTO) throws IOException {
+        MangaUpdatesResponse mangaUpdatesResponse = hitApi(searchDTO);
+        List<Manga> results = cacheMangaUpdates(mangaUpdatesResponse);
+
+        return new AnyMvPage<>(results, mangaUpdatesResponse.getTotalHits(), mangaUpdatesResponse.getPerPage(), mangaUpdatesResponse.getPage());
+    }
+
+    private MangaUpdatesResponse hitApi(MangaSearchDTO searchDTO) throws IOException {
         final String MANGA_UPDATES_API_SEARCH = "https://api.mangaupdates.com/v1/series/search";
         CloseableHttpClient client = HttpClients.createDefault();
 
@@ -66,8 +73,7 @@ public class MangaService {
         HttpEntity responseEntity = response.getEntity();
 
         MangaUpdatesResponse mangaUpdatesResponse = mapper.readValue(responseEntity.getContent(), MangaUpdatesResponse.class);
-
-        return new AnyMvPage<>(cacheMangaUpdates(mangaUpdatesResponse), mangaUpdatesResponse.getTotalHits(), mangaUpdatesResponse.getPerPage(), mangaUpdatesResponse.getPage());
+        return mangaUpdatesResponse;
     }
 
     private List<Manga> cacheMangaUpdates(MangaUpdatesResponse mangaUpdatesResponse) {
