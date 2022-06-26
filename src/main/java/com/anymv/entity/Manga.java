@@ -1,5 +1,7 @@
 package com.anymv.entity;
 
+import org.springframework.data.geo.Shape;
+
 import javax.persistence.*;
 import java.util.Calendar;
 import java.util.List;
@@ -17,8 +19,7 @@ public class Manga extends BaseEntity {
     @JoinColumn(name = "image_id")
     private Image image;
 
-    @ManyToOne
-    @JoinColumn(name = "type_id")
+    @Enumerated(EnumType.STRING)
     private Type type;
 
     @Column(columnDefinition = "varchar(4)")
