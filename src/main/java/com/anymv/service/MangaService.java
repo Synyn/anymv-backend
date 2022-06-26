@@ -122,7 +122,9 @@ public class MangaService {
         manga.setTitle(record.getTitle());
         manga.setYear(record.getYear());
         manga.setType(Type.MANGA);
-        manga.setImage();
+        manga.setImage(image);
+        manga.setGenres(genres);
+        manga.setUpdated(record.getLastUpdated().);
 
         return null;
     }
