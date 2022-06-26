@@ -1,16 +1,12 @@
 package com.anymv.service;
 
 import com.anymv.dao.ImageDao;
-import com.anymv.dto.mangaupdates.MangaUpdatesImage;
-import com.anymv.dto.mangaupdates.MangaUpdatesImageUrl;
 import com.anymv.entity.Image;
 import com.anymv.util.Utils;
-import com.google.common.hash.Hashing;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
-import java.nio.charset.StandardCharsets;
 
 @Service
 public class ImageService {
@@ -19,23 +15,19 @@ public class ImageService {
     private ImageDao imageDao;
 
     @Transactional
-    public Image getOrCreateImage(MangaUpdatesImage image) {
-        String hashSha256 =
-                Utils.hashSha256(image.getUrl().getOriginal() + image.getUrl().getThumb());
-
-        Image dbImage = imageDao.findOneByHash(hashSha256);
+    public Image getOrCreateImage(String imageUrl) {
+        Image dbImage = imageDao.findOneByImagePath(imageUrl);
         if (dbImage == null) {
-            dbImage = createNewImage(image.getUrl());
+            dbImage = createNewImage(imageUrl);
         }
 
         return dbImage;
     }
 
     @Transactional
-    private Image createNewImage(MangaUpdatesImageUrl url) {
+    private Image createNewImage(String imageUrl) {
         Image image = new Image();
-        image.setImagePath(url.getOriginal());
-        image.setHash(Utils.hashSha256(url.getOriginal() + url.getThumb()));
+        image.setImagePath(imageUrl);
 
         return imageDao.save(image);
     }

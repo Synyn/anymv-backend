@@ -1,23 +1,16 @@
 package com.anymv.service;
 
 import com.anymv.dao.CustomMangaDao;
+import com.anymv.dao.MangaDao;
+import com.anymv.dto.MangaDto;
+import com.anymv.dto.MangaResponseDto;
 import com.anymv.dto.MangaSearchDTO;
 import com.anymv.dto.mangaupdates.*;
-import com.anymv.entity.Genre;
-import com.anymv.entity.Image;
 import com.anymv.entity.Manga;
-import com.anymv.entity.Type;
 import com.anymv.util.AnyMvPage;
 import com.anymv.util.ErrorMessages;
+import com.anymv.util.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +36,12 @@ public class MangaService {
     @Autowired
     private ImageService imageService;
 
+    @Autowired
+    private MangaUpdatesService mangaUpdatesService;
+
+    @Autowired
+    private MangaDao mangaDao;
+
     private static ObjectMapper mapper = new ObjectMapper();
 
     private Logger logger = LoggerFactory.getLogger(MangaService.class);
@@ -66,94 +65,51 @@ public class MangaService {
     }
 
     private AnyMvPage<Manga> gatherResultsFromApi(MangaSearchDTO searchDTO) throws IOException {
-        MangaUpdatesResponse mangaUpdatesResponse = hitApi(searchDTO);
-        List<Manga> results = cacheMangaUpdates(mangaUpdatesResponse);
-
-        return new AnyMvPage<>(results, mangaUpdatesResponse.getTotalHits(), mangaUpdatesResponse.getPerPage(), mangaUpdatesResponse.getPage());
-    }
-
-    private MangaUpdatesResponse hitApi(MangaSearchDTO searchDTO) throws IOException {
-        final String MANGA_UPDATES_API_SEARCH = "https://api.mangaupdates.com/v1/series/search";
-        CloseableHttpClient client = HttpClients.createDefault();
-
-        StringEntity entity = new StringEntity(
-                mapper.writeValueAsString(createMangaUpdatesBody(searchDTO)),
-                ContentType.APPLICATION_JSON
-        );
-
-        HttpPost post = new HttpPost(MANGA_UPDATES_API_SEARCH);
-        post.setEntity(entity);
-
-        CloseableHttpResponse response = client.execute(post);
-        HttpEntity responseEntity = response.getEntity();
-
-        return mapper.readValue(responseEntity.getContent(), MangaUpdatesResponse.class);
-    }
-
-    private List<Manga> cacheMangaUpdates(MangaUpdatesResponse mangaUpdatesResponse) {
-
-        if (mangaUpdatesResponse.getTotalHits() == 0) {
+        MangaResponseDto response = mangaUpdatesService.findManga(searchDTO);
+        if (response.getTotalResults() == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ErrorMessages.RESOURCE_NOT_FOUND);
         }
 
-        List<MangaUpdatesResult> results = mangaUpdatesResponse.getResults();
-        List<Manga> dbManga = new ArrayList<>();
-
-        for (MangaUpdatesResult result : results) {
-            MangaUpdatesRecord record = result.getRecord();
-            List<String> genres = mangaUpdatesGenreToStringArray(record.getGenres());
-
-            List<Genre> dbGenres = genreService.getAndCreateGenres(genres);
-
-            Manga manga = createMangaFromMangaUpdatesRecord(record);
+        List<Manga> results = cacheApiResponse(response.getRecords());
+        return new AnyMvPage<>(results, response.getTotalResults(), response.getItemsPerPage(), response.getPage());
+    }
 
 
+    @Transactional
+    private List<Manga> cacheApiResponse(List<MangaDto> records) {
+        List<Manga> caches = new ArrayList<>();
+
+        for(MangaDto record: records) {
+            Manga manga = createMangaFromDto(record);
+
+            manga.setImage(imageService.getOrCreateImage(record.getImage()));
+            manga.setGenres(genreService.getAndCreateGenres(record.getGenres()));
+
+            caches.add(manga);
         }
 
-        return dbManga;
+        return mangaDao.saveAll(caches);
 
     }
 
-    private Manga createMangaFromMangaUpdatesRecord(MangaUpdatesRecord record) {
-        List<Genre> genres = genreService.getAndCreateGenres(mangaUpdatesGenreToStringArray(record.getGenres()));
-        Image image = imageService.getOrCreateImage(record.getImage());
-
+    /**
+     * This will only add the basic parameters.
+     *
+     * The images and genres have to be set up from a different space.
+     * @param dto - The dto that we need to take the data from
+     * @return Manga - the record that should be set in the db
+     *
+     * NOTE: This method will not attach or create the record, it will only model it.
+     */
+    private Manga createMangaFromDto(MangaDto dto) {
         Manga manga = new Manga();
-        manga.setTitle(record.getTitle());
-        manga.setYear(record.getYear());
-        manga.setType(Type.MANGA);
-        manga.setImage(image);
-        manga.setGenres(genres);
-        manga.setUpdated(record.getLastUpdated().);
+        manga.setDescription(dto.getDescription());
+        manga.setTitle(dto.getTitle());
+        manga.setYear(dto.getYear());
+        manga.setType(dto.getType());
+        manga.setUpdated(Utils.stringToDateUTC(dto.getUpdatedDate(), dto.getDatePattern(), dto.getTimeZone()));
 
-        return null;
-    }
-
-    private List<String> mangaUpdatesGenreToStringArray(List<MangaUpdatesGenre> genres) {
-        ArrayList<String> genreStr = new ArrayList<>();
-
-        for (MangaUpdatesGenre genre : genres) {
-            genreStr.add(genre.getGenre());
-        }
-
-        return genreStr;
-    }
-
-    private MangaUpdatesRequest createMangaUpdatesBody(MangaSearchDTO searchDTO) {
-        MangaUpdatesRequest request = new MangaUpdatesRequest();
-
-        String search = searchDTO.getName();
-
-        if (StringUtils.isEmpty(search)) {
-            search = searchDTO.getDescription();
-        }
-
-        request.setPage(searchDTO.getPage());
-        request.setPerPage(searchDTO.getItems());
-        request.setGenres(searchDTO.getGenres());
-        request.setSearch(search);
-
-        return request;
+        return manga;
     }
 
 }

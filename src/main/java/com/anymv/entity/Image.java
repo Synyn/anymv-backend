@@ -11,17 +11,6 @@ public class Image extends BaseEntity {
     @Column(columnDefinition = "varchar(255)")
     private String imagePath;
 
-    @Column(columnDefinition = "varchar(100)", unique = true)
-    private String hash;
-
-    public String getHash() {
-        return hash;
-    }
-
-    public void setHash(String hash) {
-        this.hash = hash;
-    }
-
     public String getImagePath() {
         return imagePath;
     }

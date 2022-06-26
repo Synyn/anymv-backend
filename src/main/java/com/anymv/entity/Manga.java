@@ -5,6 +5,7 @@ import org.springframework.data.geo.Shape;
 
 import javax.persistence.*;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -35,7 +36,7 @@ public class Manga extends BaseEntity {
 
     @Basic
     @Temporal(TemporalType.TIMESTAMP)
-    private Calendar updated;
+    private Date updated;
 
     public String getTitle() {
         return title;
@@ -85,11 +86,11 @@ public class Manga extends BaseEntity {
         this.genres = genres;
     }
 
-    public Calendar getUpdated() {
+    public Date getUpdated() {
         return updated;
     }
 
-    public void setUpdated(Calendar updated) {
+    public void setUpdated(Date updated) {
         this.updated = updated;
     }
 }
