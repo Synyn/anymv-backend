@@ -1,5 +1,6 @@
 package com.anymv.entity;
 
+import com.anymv.entity.conveter.EnumTypeConverter;
 import org.springframework.data.geo.Shape;
 
 import javax.persistence.*;
@@ -19,7 +20,7 @@ public class Manga extends BaseEntity {
     @JoinColumn(name = "image_id")
     private Image image;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = EnumTypeConverter.class)
     private Type type;
 
     @Column(columnDefinition = "varchar(4)")
