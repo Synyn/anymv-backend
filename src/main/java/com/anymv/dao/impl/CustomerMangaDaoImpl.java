@@ -3,6 +3,7 @@ package com.anymv.dao.impl;
 import com.anymv.dao.CustomMangaDao;
 import com.anymv.dto.MangaSearchDTO;
 import com.anymv.entity.Manga;
+import com.anymv.entity.Type;
 import com.anymv.util.AnyMvPage;
 import com.anymv.util.Utils;
 import org.apache.commons.lang3.StringUtils;
@@ -10,10 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;
-import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.util.ArrayList;
@@ -86,7 +87,7 @@ public class CustomerMangaDaoImpl implements CustomMangaDao {
         for (int i = 0; i < whereList.size(); i++) {
             String where = whereList.get(i);
 
-            if(i > 0) {
+            if (i > 0) {
                 stringBuilder.append("AND");
             }
 
@@ -99,5 +100,16 @@ public class CustomerMangaDaoImpl implements CustomMangaDao {
         stringBuilder.append(" JOIN FETCH manga.image image");
         stringBuilder.append(" JOIN FETCH manga.type type");
         stringBuilder.append(" JOIN FETCH manga.genres genres");
+    }
+
+    @Transactional
+    public List<Manga> findNewest(Type type, int limit) {
+        String queryStr = "SELECT manga Manga manga WHERE manga.type = ? ORDER BY manga.updated DESC";
+        TypedQuery<Manga> query = entityManager.createQuery(queryStr, Manga.class);
+
+        query.setParameter(0, type);
+        query.setMaxResults(limit);
+
+        return query.getResultList();
     }
 }

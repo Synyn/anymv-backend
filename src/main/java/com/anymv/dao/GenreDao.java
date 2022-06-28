@@ -8,6 +8,6 @@ import java.util.List;
 
 public interface GenreDao extends JpaRepository<Genre, Long> {
 
-    @Query("SELECT genre from Genre genre WHERE genre.name IN (?1)")
+    @Query("SELECT genre from Genre genre WHERE genre.genre IN (?1)")
     List<Genre> findAllGenresByGenreName(List<String> genres);
 }

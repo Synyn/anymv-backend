@@ -135,7 +135,7 @@ public class MangaService {
      * @return List<Manga> - the found resources
      */
     public List<Manga> getNewest(Type type, int limit) {
-        List<Manga> newest = mangaDao.findNewest(type, limit);
+        List<Manga> newest = customMangaDao.findNewest(type, limit);
 
         if(newest.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, ErrorMessages.RESOURCE_NOT_FOUND);
