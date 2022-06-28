@@ -24,6 +24,7 @@ import javax.transaction.Transactional;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class MangaService {
@@ -59,7 +60,6 @@ public class MangaService {
         } else {
             return new AnyMvPage<>(resultQuery, searchDTO.getPage(), searchDTO.getItems());
         }
-
     }
 
     private AnyMvPage<Manga> gatherResultsFromApi(MangaSearchDTO searchDTO) throws IOException {
@@ -110,4 +110,14 @@ public class MangaService {
         return manga;
     }
 
+    public Manga findOneById(Long id) {
+        Optional<Manga> manga = mangaDao.findById(id);
+
+        boolean present = manga.isPresent();
+        if(!present) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ErrorMessages.RESOURCE_NOT_FOUND);
+        }
+
+        return manga.get();
+    }
 }
