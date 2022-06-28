@@ -128,6 +128,12 @@ public class MangaService {
         return manga.get();
     }
 
+    /**
+     * Find newest
+     * @param type Type - the type of manga that we need to get
+     * @param limit int - how many records we need
+     * @return List<Manga> - the found resources
+     */
     public List<Manga> getNewest(Type type, int limit) {
         List<Manga> newest = mangaDao.findNewest(type, limit);
 
