@@ -42,8 +42,6 @@ public class MangaService {
     @Autowired
     private MangaDao mangaDao;
 
-    private static ObjectMapper mapper = new ObjectMapper();
-
     private Logger logger = LoggerFactory.getLogger(MangaService.class);
 
 
