@@ -7,6 +7,7 @@ import com.anymv.dto.MangaResponseDto;
 import com.anymv.dto.MangaSearchDTO;
 import com.anymv.dto.mangaupdates.*;
 import com.anymv.entity.Manga;
+import com.anymv.entity.Type;
 import com.anymv.util.AnyMvPage;
 import com.anymv.util.ErrorMessages;
 import com.anymv.util.Utils;
@@ -110,6 +111,12 @@ public class MangaService {
         return manga;
     }
 
+    /**
+     * Finds one manga by id.
+     * @param id Long - the id of the manga
+     * @return Manga - the resource
+     * @throws ResponseStatusException - if the resource was not found.
+     */
     public Manga findOneById(Long id) {
         Optional<Manga> manga = mangaDao.findById(id);
 
@@ -119,5 +126,15 @@ public class MangaService {
         }
 
         return manga.get();
+    }
+
+    public List<Manga> getNewest(Type type, int limit) {
+        List<Manga> newest = mangaDao.findNewest(type, limit);
+
+        if(newest.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, ErrorMessages.RESOURCE_NOT_FOUND);
+        }
+
+        return newest;
     }
 }
