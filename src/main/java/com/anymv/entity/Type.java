@@ -7,7 +7,8 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 
 
-public enum Type {
+public enum
+Type {
     ARTBOOK("Artbook"),
     DOUJINSHI("Doujinshi"),
     DRAMA_CD("Drama CD"),
