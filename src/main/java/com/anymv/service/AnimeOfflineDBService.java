@@ -3,6 +3,7 @@ package com.anymv.service;
 import com.anymv.dao.AnimeDao;
 import com.anymv.dao.AnimeTypeDao;
 import com.anymv.dao.GenreDao;
+import com.anymv.dao.SynonymDao;
 import com.anymv.dto.animeoffline.AnimeOfflineDBResponse;
 import com.anymv.dto.animeoffline.AnimeOfflineDbData;
 import com.anymv.entity.*;
@@ -27,13 +28,13 @@ import java.util.Objects;
 import java.util.TreeMap;
 
 @Service
-public class MangaOfflineDBService {
+public class AnimeOfflineDBService {
     private final static String OFFLINE_DATABASE_URL = "https://raw.githubusercontent.com/manami-project/anime-offline-database/master/anime-offline-database.json";
     private static final int SUCCESS_CODE = 200;
     private static final ObjectMapper mapper = new ObjectMapper();
 
 
-    private Logger logger = LoggerFactory.getLogger(MangaOfflineDBService.class);
+    private Logger logger = LoggerFactory.getLogger(AnimeOfflineDBService.class);
 
     @Autowired
     private AnimeDao animeDao;
@@ -43,6 +44,9 @@ public class MangaOfflineDBService {
 
     @Autowired
     private AnimeTypeDao animeTypeDao;
+
+    @Autowired
+    private SynonymDao synonymDao;
 
 
     public void updateDatabase() {
@@ -59,8 +63,11 @@ public class MangaOfflineDBService {
     private void handleUpdate(AnimeOfflineDBResponse response) {
 
         // TODO: Validate update
-
+        logger.info("Started update ");
         List<AnimeOfflineDbData> dataList = response.getData();
+
+        logger.info("Data size -> " + dataList.size());
+
         TreeMap<String, Anime> animeTree = getAllAnimes();
 
         for (AnimeOfflineDbData data : dataList) {
@@ -71,6 +78,8 @@ public class MangaOfflineDBService {
                 updateAnime(anime, data);
             }
         }
+
+        logger.info("Finished update");
 
     }
 
@@ -107,6 +116,17 @@ public class MangaOfflineDBService {
             anime.setEpisodes(data.getEpisodes());
         }
 
+        List<Synonym> synonyms = anime.getSynonyms();
+        for (String synonym : data.getSynonyms()) {
+            Synonym found = synonyms.stream().filter(s -> StringUtils.equals(synonym, s.getName())).findFirst().orElse(null);
+
+            if(found == null) {
+                Synonym dbSynonym = createSynonym(synonym, anime);
+                synonyms.add(dbSynonym);
+            }
+        }
+
+        anime.setSynonyms(synonyms);
         anime.setType(type);
         anime.setGenres(genres);
 
@@ -154,10 +174,12 @@ public class MangaOfflineDBService {
         return genreDao.save(genre);
     }
 
+    @Transactional
     private void createAnime(AnimeOfflineDbData data) {
-        Anime anime = new Anime();
+        Anime anime = animeDao.save(new Anime());
 
         List<Genre> genres = getGenres(data.getTags());
+        List<Synonym> synonyms = getSynonyms(data.getSynonyms(), anime);
         AnimeType animeType = getAnimeType(data.getType());
 
         anime.setTitle(data.getTitle());
@@ -171,8 +193,29 @@ public class MangaOfflineDBService {
 
         anime.setGenres(genres);
         anime.setType(animeType);
+        anime.setSynonyms(synonyms);
 
         animeDao.save(anime);
+    }
+
+    private List<Synonym> getSynonyms(List<String> synonyms, Anime anime) {
+        List<Synonym> newSynonyms = new ArrayList<>();
+
+        for (String synonym : synonyms) {
+            Synonym dbSynonym = createSynonym(synonym, anime);
+
+            newSynonyms.add(dbSynonym);
+        }
+
+        return newSynonyms;
+    }
+
+    private Synonym createSynonym(String synonym, Anime anime) {
+        Synonym dbSynonym = new Synonym();
+        dbSynonym.setName(synonym);
+        dbSynonym.setAnime(anime);
+
+        return synonymDao.save(dbSynonym);
     }
 
     @Transactional

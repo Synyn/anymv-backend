@@ -4,5 +4,7 @@ public enum AnimeSeason {
     SPRING,
     SUMMER,
     FALL,
-    WINTER
+    WINTER,
+
+    UNDEFINED
 }

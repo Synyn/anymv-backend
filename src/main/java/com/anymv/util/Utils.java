@@ -22,7 +22,7 @@ public class Utils {
             size = 1;
         }
 
-        return page * size;
+        return ((size* page) - size);
     }
 
     public static String hashSha256(String input) {

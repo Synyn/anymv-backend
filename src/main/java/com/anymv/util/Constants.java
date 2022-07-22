@@ -7,4 +7,5 @@ public class Constants {
      */
     public static final int DEFAULT_PAGE_NUMBER = 1;
     public static final int DEFAULT_ITEMS_NUMBER = 10;
+    public static final Integer DEFAULT_SMALL_ITEMS_SEARCH = 5;
 }
